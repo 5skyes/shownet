@@ -45,6 +45,28 @@
     "onPreload": "",
     "widgets": [
       {
+        "type": "variable",
+        "lock": false,
+        "id": "g_config",
+        "comments": "",
+        "value": {
+          "transition": {
+            "decimation": 30
+          }
+        },
+        "default": "",
+        "linkId": "",
+        "address": "auto",
+        "preArgs": "",
+        "typeTags": "",
+        "decimals": 2,
+        "target": "",
+        "ignoreDefaults": false,
+        "bypass": false,
+        "onCreate": "",
+        "onValue": ""
+      },
+      {
         "type": "panel",
         "top": 0,
         "left": 0,
@@ -548,7 +570,7 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "onCreate": "",
+                    "onCreate": "set(\"col_db_selected\", get(\"col_db_list\")[0][1])",
                     "onValue": ""
                   }
                 ],
@@ -661,15 +683,15 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "onCreate": "",
-                    "onValue": "setTimeout(null,() => {\n  set('g_take_sidestore', get('col_pgm_state'));\n    setTimeout(null,() => {\n      set('col_pgm_state', get(\"col_pvw_state\"));\n      setTimeout(null,() => {\n        set(\"col_pvw_state\", get(\"g_take_sidestore\"));\n        setTimeout(null,() => {\n          set('g_take_sidestore', get(\"col_pgm_groups_active\"));\n          setTimeout(null,() => {\n            set('col_pgm_groups_active', get(\"col_pvw_groups_active\"));\n            setTimeout(null,() => {\n              set(\"col_pvw_groups_active\", get(\"g_take_sidestore\"));\n              setTimeout(null,() => {\n                set(\"g_take_sidestore\",null)\n                set(\"g_take_bcast_pgm\",get('col_pgm_state'))\n              }, 50);\n            }, 10);\n          }, 10);\n        }, 30);\n      }, 10);\n    }, 10);\n  }, 0);"
+                    "onValue": "let pgm = get('col_pgm_state')\nlet pvw = get('col_pvw_state')\nlet pgmAct = get('col_pgm_groups_active')\nlet pvwAct = get('col_pvw_groups_active')\nset('g_take_sidestore',pgm)\nset('col_pgm_state',pvw)\nset('col_pvw_state',pgm)\nset('col_pgm_groups_active',pvwAct)\n// set('col_pvw_groups_active',pgmAct)\n// set(\"g_take_bcast_pgm\",[pvw,pgm])\n\n\n// setTimeout(null,() => {\n//   set('g_take_sidestore', get('col_pgm_state'));\n//     setTimeout(null,() => {\n//       set('col_pgm_state', get(\"col_pvw_state\"));\n//       setTimeout(null,() => {\n//         set(\"col_pvw_state\", get(\"g_take_sidestore\"));\n//         setTimeout(null,() => {\n//           set('g_take_sidestore', get(\"col_pgm_groups_active\"));\n//           setTimeout(null,() => {\n//             set('col_pgm_groups_active', get(\"col_pvw_groups_active\"));\n//             setTimeout(null,() => {\n//               set(\"col_pvw_groups_active\", get(\"g_take_sidestore\"));\n//               setTimeout(null,() => {\n//                 set(\"g_take_sidestore\",null)\n//                 set(\"g_take_bcast_pgm\",get('col_pgm_state'))\n//               }, 50);\n//             }, 10);\n//           }, 10);\n//         }, 30);\n//       }, 10);\n//     }, 10);\n//   }, 0);"
                   },
                   {
                     "type": "variable",
                     "lock": false,
                     "id": "g_take_sidestore",
                     "comments": "",
-                    "value": "ee",
-                    "default": null,
+                    "value": "",
+                    "default": "",
                     "linkId": "",
                     "address": "auto",
                     "preArgs": "",
@@ -680,28 +702,6 @@
                     "bypass": false,
                     "onCreate": "",
                     "onValue": ""
-                  },
-                  {
-                    "type": "script",
-                    "lock": false,
-                    "id": "g_take_bcast_pgm",
-                    "comments": "",
-                    "value": "",
-                    "default": "",
-                    "linkId": "",
-                    "address": "auto",
-                    "preArgs": "",
-                    "decimals": 2,
-                    "target": "",
-                    "bypass": false,
-                    "onCreate": "",
-                    "onValue": "let state = get('col_pgm_state');\nfor (let group in state) {\n  setTimeout('bcast'+group,()=>{\n    send(null,'/5s/shownet/color/pgm/group/'+group+'/color', state[group])\n  },20*group)\n}",
-                    "typeTags": "",
-                    "ignoreDefaults": false,
-                    "onKeyboard": "",
-                    "keyBinding": "",
-                    "keyRepeat": true,
-                    "keyType": "keydown"
                   }
                 ],
                 "tabs": []
@@ -775,8 +775,7 @@
                       "mode": "tap",
                       "typeTags": "s",
                       "on": "#{@{this.variables}[0][$]}",
-                      "off": "",
-                      "address": "#{'/5s/shownet/color/'+ @{this.variables}[4] + '/group/' + @{this.variables}[3] + '/color'}"
+                      "off": ""
                     }
                   },
                   {
@@ -803,7 +802,7 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "onCreate": "",
-                    "onValue": ""
+                    "onValue": "let timing = get(\"g_config\").transition.decimation;\ntiming = timing ? timing : 30;\nlet duration = get(\"color_transition\")*1000 //returns time in seconds, cnv2 ms\nlet stepCount = Math.floor(duration/timing)\n// console.error(\"\" + timing + \", \" + duration + \", \" + stepCount)\nlet state = get(this);\nlet pgm = state //incoming new pgm\nlet pvw = get(\"g_take_sidestore\") // outgoing previous program / new pvw\npvw = pvw ? pvw : [\"#FF0000\",\"#00FF00\",\"#0000FF\"]\n\nfunction hexToRGB(hex) { // thank you to Tim Down for this function and its twin below.\n  let result = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex)\n  return result ? [parseInt(result[1], 16),parseInt(result[2], 16),parseInt(result[3], 16)] : null;\n}\nfunction rgbToHex(r,g,b) {\n  r=Math.round(r);\n  g=Math.round(g);\n  b=Math.round(b);\n  return \"#\" + (1<< 24 | r << 16 | g << 8 | b).toString(16).slice(1)\n}\n\nfor (let i=0; i<=stepCount; i++) {\n  let stepArr = []\n  for (let col in pgm) {\n    let pgmRGB = hexToRGB(pgm[col])\n    let pvwRGB = hexToRGB(pvw[col])\n    let step = []\n    for (let c = 0; c<3; c++) {\n      step[c] = pvwRGB[c]+((pgmRGB[c]-pvwRGB[c])/stepCount)*i\n      step[c] = stepCount ? step[c] : pgmRGB[c]\n    }\n    stepArr.push(step)\n  }\n  let outArr = []\n  for (let col in stepArr) {\n    outArr[col] = rgbToHex(stepArr[col][0],stepArr[col][1],stepArr[col][2])\n  }\n  // console.error(\"\"+i+\", \" + outArr)\n  for (let group in outArr) {\n    setTimeout('bcast_'+i+\"_\"+group,()=>{\n    send(null,'/5s/shownet/color/pgm/group/'+group+'/color', outArr[group])\n    // console.error(\"out: \"+i)\n  },timing*i+(group/3*timing))\n}\n}\nset(\"g_take_sidestore\",pgm)\n"
                   },
                   {
                     "type": "matrix",
@@ -1068,7 +1067,7 @@
                 "visible": true,
                 "interaction": true,
                 "comments": "",
-                "width": "100%",
+                "width": "50%",
                 "height": "20%",
                 "expand": false,
                 "size": [
@@ -1099,7 +1098,7 @@
                 "values": "JS{ let l_arr = []; let l_state = @{col_db_list}; for (let db in l_state) {l_arr[db] = l_state[db][0]}; return l_arr; }",
                 "weights": "",
                 "value": "",
-                "default": "",
+                "default": "JS{return @{col_db_list}[0][0]}",
                 "linkId": "",
                 "address": "auto",
                 "preArgs": "",
@@ -1110,6 +1109,104 @@
                 "bypass": false,
                 "onCreate": "",
                 "onValue": "set(\"col_db_selected\", get(\"col_db_list\")[get(\"col_db_list\").findIndex((name) => {return name[0] == get(\"this\")})][1])"
+              },
+              {
+                "type": "fader",
+                "top": "80%",
+                "left": "50%",
+                "lock": false,
+                "id": "color_transition",
+                "visible": true,
+                "interaction": true,
+                "comments": "",
+                "width": "50%",
+                "height": "20%",
+                "expand": false,
+                "colorText": "auto",
+                "colorWidget": "#204563",
+                "colorStroke": "auto",
+                "colorFill": "auto",
+                "alphaStroke": 0.75,
+                "alphaFillOff": 0.25,
+                "alphaFillOn": 1,
+                "lineWidth": 8,
+                "borderRadius": 12,
+                "padding": 12,
+                "html": "",
+                "css": "font-size:2em;\nbox-shadow: 0px 0px 10px #106325;\ntext-shadow: 2px 2px 2px #106325;\npadding: 0px; ",
+                "design": "compact",
+                "knobSize": "auto",
+                "colorKnob": "auto",
+                "horizontal": true,
+                "pips": false,
+                "dashed": false,
+                "gradient": [
+                  "#f31Fa5",
+                  "#102563"
+                ],
+                "snap": false,
+                "touchZone": "all",
+                "spring": false,
+                "doubleTap": false,
+                "range": {
+                  "min": 0,
+                  "max": 10
+                },
+                "logScale": false,
+                "sensitivity": 1,
+                "steps": "",
+                "origin": "auto",
+                "value": "",
+                "default": 1,
+                "linkId": "",
+                "address": "/5s/shownet/color/transition",
+                "preArgs": "",
+                "typeTags": "",
+                "decimals": 4,
+                "target": "",
+                "ignoreDefaults": false,
+                "bypass": false,
+                "onCreate": "",
+                "onValue": "",
+                "onTouch": ""
+              },
+              {
+                "type": "text",
+                "top": "80%",
+                "left": "50%",
+                "lock": false,
+                "id": "color_transition_label",
+                "visible": true,
+                "interaction": false,
+                "comments": "",
+                "width": "50%",
+                "height": "20%",
+                "expand": false,
+                "colorText": "auto",
+                "colorWidget": "#1ff3a500",
+                "colorStroke": "auto",
+                "colorFill": "auto",
+                "alphaStroke": 0.75,
+                "alphaFillOff": 0.25,
+                "alphaFillOn": "auto",
+                "lineWidth": 1,
+                "borderRadius": 12,
+                "padding": 8,
+                "html": "",
+                "css": "font-size:2em;\ntext-shadow: 2px 2px 2px #106325;\npadding: 0px; ",
+                "vertical": false,
+                "wrap": false,
+                "align": "center",
+                "value": "TRANSITION",
+                "default": "",
+                "linkId": "",
+                "address": "auto",
+                "preArgs": "",
+                "decimals": 2,
+                "target": "",
+                "bypass": false,
+                "onCreate": "",
+                "onValue": ""
               }
             ],
             "tabs": []
